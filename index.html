@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Git Gallery</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="three-canvas"></canvas>
+
+  <div id="loading-screen">
+    <div id="loading-content">
+      <h1 class="loading-title">Git Gallery</h1>
+      <p id="loading-status">Initializing...</p>
+      <div id="loading-bar-wrap">
+        <div id="loading-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="instructions">
+    <div id="instructions-content">
+      <h2>Git Gallery</h2>
+      <p>Explore your GitHub universe in 3D</p>
+      <div class="controls-list">
+        <div class="control-row"><kbd>Click</kbd> Lock pointer &amp; start</div>
+        <div class="control-row"><kbd>W A S D</kbd> Move</div>
+        <div class="control-row"><kbd>Mouse</kbd> Look around</div>
+        <div class="control-row"><kbd>Shift</kbd> Run</div>
+        <div class="control-row"><kbd>Esc</kbd> Pause / unlock</div>
+      </div>
+      <p class="hint">Hover over doorways to see repository info</p>
+    </div>
+  </div>
+
+  <div id="crosshair"></div>
+
+  <div id="tooltip"></div>
+
+  <canvas id="minimap"></canvas>
+
+  <a id="made-with-badge" href="https://github.com/usr-wwelsh/git-gallery" target="_blank" rel="noopener">
+    Made with <span class="badge-name">git-gallery</span> by <span class="badge-user">usr-wwelsh</span>
+  </a>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

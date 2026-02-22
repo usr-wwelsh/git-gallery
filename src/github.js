@@ -1,0 +1,117 @@
+const CONTRIB_API = 'https://github-contributions-api.jogruber.de/v4';
+const GH_API = 'https://api.github.com';
+
+/**
+ * Fetch all data needed for the gallery.
+ * @param {string} username
+ * @param {(status: string, pct: number) => void} onProgress
+ * @returns {{ repos: object[], languages: Record<string,Record<string,number>>, contributions: object[] }}
+ */
+export async function fetchAllData(username, onProgress = () => {}) {
+  onProgress('Fetching repositories…', 5);
+
+  // 1. Repos (sorted by stars, most popular first)
+  let repos = [];
+  try {
+    const res = await fetch(
+      `${GH_API}/users/${username}/repos?per_page=100&sort=updated&type=public`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const all = await res.json();
+    repos = all
+      .filter(r => !r.fork)
+      .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
+      .slice(0, 20);
+  } catch (err) {
+    console.warn('Failed to fetch repos:', err);
+  }
+
+  onProgress(`Found ${repos.length} repositories`, 20);
+
+  // 2. Languages (batched in chunks of 5)
+  const languages = {};
+  const chunks = chunkArray(repos, 5);
+  let done = 0;
+
+  for (const chunk of chunks) {
+    await Promise.all(
+      chunk.map(async repo => {
+        try {
+          const res = await fetch(repo.languages_url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          languages[repo.name] = await res.json();
+        } catch (err) {
+          console.warn(`Failed to fetch languages for ${repo.name}:`, err);
+          languages[repo.name] = {};
+        }
+        done++;
+        const pct = 20 + Math.round((done / repos.length) * 50);
+        onProgress(`Loading language data… (${done}/${repos.length})`, pct);
+      })
+    );
+  }
+
+  onProgress('Fetching contribution history…', 75);
+
+  // 3. Contributions
+  let contributions = [];
+  try {
+    const res = await fetch(`${CONTRIB_API}/${username}?y=last`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    // API returns { contributions: [...], total: {...} }
+    contributions = data.contributions || [];
+  } catch (err) {
+    console.warn('Failed to fetch contributions (lobby will be flat):', err);
+  }
+
+  onProgress('Building world…', 90);
+
+  return { repos, languages, contributions };
+}
+
+/**
+ * Fetch the README markdown for a repo via raw.githubusercontent.com.
+ * This bypasses the GitHub API rate limit entirely and returns raw UTF-8 text.
+ * @param {string} owner
+ * @param {string} repoName
+ * @returns {Promise<string|null>} raw markdown text, or null on failure
+ */
+export async function fetchReadme(owner, repoName) {
+  const RAW = 'https://raw.githubusercontent.com';
+  // Try common README filenames (HEAD resolves to default branch)
+  for (const name of ['README.md', 'readme.md', 'Readme.md', 'README.rst', 'README.txt', 'README']) {
+    try {
+      const res = await fetch(`${RAW}/${owner}/${repoName}/HEAD/${name}`);
+      if (res.ok) return await res.text();
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
+/**
+ * Fetch the top-level file tree for a repo via the Contents API.
+ * @returns {Promise<Array<{path:string,type:string}>|null>}
+ */
+export async function fetchFileTree(owner, repoName) {
+  try {
+    const res = await fetch(`${GH_API}/repos/${owner}/${repoName}/contents/`, {
+      headers: { Accept: 'application/vnd.github.v3+json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data)) return null;
+    // Normalize to same shape as Trees API (type: 'tree' for dirs, 'blob' for files)
+    return data.map(e => ({ path: e.name, type: e.type === 'dir' ? 'tree' : 'blob' }));
+  } catch {
+    return null;
+  }
+}
+
+function chunkArray(arr, size) {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
