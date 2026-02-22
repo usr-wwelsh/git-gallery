@@ -56,7 +56,7 @@ docker run -p 8080:80 git-gallery
 
 ## Inspiration
 
-Git Gallery is inspired by [**Museum of All Things**](https://mayaontheinter.net/museumofall/) by [Maya Claire](https://mayaontheinter.net/) — a beautiful piece that imagines the internet as a walkable museum. Git Gallery applies that same idea to a GitHub profile, turning commit history and code into architecture you can move through.
+Git Gallery is inspired by [**Museum of All Things**](https://mayeclair.itch.io/museum-of-all-things) by [Maya Claire](https://may.as/) — a beautiful piece that imagines the internet as a walkable museum. Git Gallery applies that same idea to a GitHub profile, turning commit history and code into architecture you can move through.
 
 ## License
 
