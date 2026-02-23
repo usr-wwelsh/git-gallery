@@ -50,7 +50,6 @@ export function buildMuseum(repos, languages, config, scene) {
     makeMarbleFloorMaterial(Math.ceil(hallWidth * 2 / 1.5), Math.ceil(hallLen / 1.5))
   );
   hallFloor.position.set(0, -0.1, -(hallLen / 2));
-  hallFloor.receiveShadow = true;
   group.add(hallFloor);
 
   const hallCeiling = new THREE.Mesh(
@@ -60,9 +59,9 @@ export function buildMuseum(repos, languages, config, scene) {
   hallCeiling.position.set(0, wallH, -(hallLen / 2));
   group.add(hallCeiling);
 
-  // ── Hallway corridor lights ────────────────────────────────
-  for (let i = 0; i <= totalSlots + 1; i++) {
-    const light = new THREE.PointLight(0xfff5e0, 0.8, 14);
+  // ── Hallway corridor lights (every 3 slots) ─────────────────
+  for (let i = 0; i <= totalSlots + 1; i += 3) {
+    const light = new THREE.PointLight(0xfff5e0, 1.2, 25);
     light.position.set(0, wallH - 0.4, -(i * hallLength));
     group.add(light);
   }
@@ -119,7 +118,6 @@ export function buildMuseum(repos, languages, config, scene) {
       makeMarbleFloorMaterial(Math.ceil(rw / 1.5), Math.ceil(rd / 1.5))
     );
     roomFloor.position.set(0, -0.1, 0);
-    roomFloor.receiveShadow = true;
     roomGroup.add(roomFloor);
 
     // Room ceiling (marble)
@@ -177,7 +175,6 @@ export function buildMuseum(repos, languages, config, scene) {
     artifact.position.set(0, baseY, -rd / 2 + rd * 0.45);
     artifact.userData.isArtifact = true;
     artifact.userData.baseY      = baseY;
-    artifact.castShadow = true;
     roomGroup.add(artifact);
 
     // Room light
@@ -289,9 +286,6 @@ function createNeonSign(roomGroup, repoName, lang, langColor, rw, rh, rd, side, 
   mesh.position.set(localX, localY, localZ);
   roomGroup.add(mesh);
 
-  const glow = new THREE.PointLight(new THREE.Color(langColor), 1.8, 3.5);
-  glow.position.set(localX, localY, localZ + 0.15);
-  roomGroup.add(glow);
 }
 
 function makeNeonSignCanvas(name, langColor) {

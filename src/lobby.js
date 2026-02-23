@@ -32,7 +32,6 @@ export function buildLobby(contributions, config, scene) {
 
   const mesh = new THREE.InstancedMesh(geom, mat, TOTAL);
   mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(TOTAL * 3), 3);
-  mesh.castShadow    = true;
   mesh.name          = 'contrib-graph';
 
   const dummy  = new THREE.Object3D();
@@ -83,7 +82,6 @@ export function buildLobby(contributions, config, scene) {
   const floorGeo = new THREE.BoxGeometry(floorW, 0.2, floorD);
   const floor = new THREE.Mesh(floorGeo, makeMarbleFloorMaterial(Math.ceil(floorW / 1.5), Math.ceil(floorD / 1.5)));
   floor.position.set(0, -0.1, floorCenterZ);
-  floor.receiveShadow = true;
   group.add(floor);
 
   // ---- Ceiling ----
@@ -201,7 +199,6 @@ export function buildLobby(contributions, config, scene) {
   textMesh.position.set(0, textH / 2 + 0.05, 1.5); // upright, bottom edge on floor
   textMesh.userData.isFloatingText = true;
   textMesh.userData.baseY          = 0.05;
-  textMesh.castShadow = true;
   group.add(textMesh);
 
   // Glow light above the text

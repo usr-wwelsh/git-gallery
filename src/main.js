@@ -41,17 +41,16 @@ export const CONFIG = {
 // ============================================================
 const canvas   = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace  = THREE.SRGBColorSpace;
 renderer.toneMapping       = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#020408');
-scene.fog = new THREE.Fog('#020408', 20, 60);
+scene.fog = new THREE.Fog('#020408', 20, 45);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, CONFIG.player.height, CONFIG.lobby.lobbyCenterZ + 2);
@@ -213,7 +212,7 @@ function loop() {
  * Runs multiple iterations to handle corners cleanly.
  */
 function resolveCollisions(pos, boxes, radius) {
-  for (let iter = 0; iter < 3; iter++) {
+  for (let iter = 0; iter < 2; iter++) {
     for (const box of boxes) {
       // Nearest point on AABB to player (XZ plane only)
       const nearX = Math.max(box.min.x, Math.min(pos.x, box.max.x));
