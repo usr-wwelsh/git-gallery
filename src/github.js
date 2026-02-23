@@ -15,10 +15,13 @@ export async function fetchAllData(username, onProgress = () => {}) {
   // Try build-time cached data first (avoids GitHub API rate limits in production)
   try {
     const res = await fetch('/github-data.json');
-    if (res.ok) {
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
       const data = await res.json();
-      onProgress('Loaded cached data', 90);
-      return data;
+      if (data && Array.isArray(data.repos)) {
+        onProgress('Loaded cached data', 90);
+        return data;
+      }
     }
   } catch { /* fall through to live API */ }
 
