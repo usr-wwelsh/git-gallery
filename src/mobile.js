@@ -44,7 +44,7 @@ export function createMobileControls(camera, config) {
   const listeners = {};
 
   // Sensitivity
-  const lookSensitivity = 0.003;
+  const lookSensitivity = 0.006;
   const joystickDeadzone = 10;
   const joystickMaxRadius = 60;
 
@@ -211,7 +211,7 @@ export function createMobileControls(camera, config) {
       if (_isMoving) {
         const normX = joystickDX / joystickMaxRadius;
         const normY = joystickDY / joystickMaxRadius;
-        const moveSpeed = speed * 0.6 * (_isRunning ? runMultiplier : 1);
+        const moveSpeed = speed * 0.35 * (_isRunning ? runMultiplier : 1);
 
         const targetX = normX * moveSpeed;
         const targetZ = normY * moveSpeed;
