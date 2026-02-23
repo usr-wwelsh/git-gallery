@@ -17,8 +17,8 @@ const CACHED_DATA = cachedModules['./github-data.json']?.default || null;
  * @returns {{ repos: object[], languages: Record<string,Record<string,number>>, contributions: object[] }}
  */
 export async function fetchAllData(username, onProgress = () => {}) {
-  // Use build-time cached data if available (avoids GitHub API rate limits in production)
-  if (CACHED_DATA && Array.isArray(CACHED_DATA.repos)) {
+  // Use build-time cached data if available and username matches
+  if (CACHED_DATA && Array.isArray(CACHED_DATA.repos) && CACHED_DATA.username === username) {
     onProgress('Loaded cached data', 90);
     return CACHED_DATA;
   }

@@ -157,7 +157,7 @@ async function fetchAll() {
   }
   console.log(`  Fetched ${Object.values(fileTrees).filter(Boolean).length} file trees`);
 
-  return { repos, languages, contributions, readmes, fileTrees };
+  return { username: USERNAME, repos, languages, contributions, readmes, fileTrees };
 }
 
 // ---------------------------------------------------------------------------
