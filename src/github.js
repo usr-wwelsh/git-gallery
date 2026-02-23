@@ -5,6 +5,10 @@ const GH_HEADERS = GH_TOKEN
   ? { Accept: 'application/vnd.github.v3+json', Authorization: `token ${GH_TOKEN}` }
   : { Accept: 'application/vnd.github.v3+json' };
 
+// Build-time cache for READMEs and file trees (populated by fetchAllData if cached data exists)
+let cachedReadmes = null;
+let cachedFileTrees = null;
+
 /**
  * Fetch all data needed for the gallery.
  * @param {string} username
@@ -19,6 +23,8 @@ export async function fetchAllData(username, onProgress = () => {}) {
     if (res.ok && ct.includes('application/json')) {
       const data = await res.json();
       if (data && Array.isArray(data.repos)) {
+        if (data.readmes) cachedReadmes = data.readmes;
+        if (data.fileTrees) cachedFileTrees = data.fileTrees;
         onProgress('Loaded cached data', 90);
         return data;
       }
@@ -96,6 +102,11 @@ export async function fetchAllData(username, onProgress = () => {}) {
  * @returns {Promise<string|null>} raw markdown text, or null on failure
  */
 export async function fetchReadme(owner, repoName) {
+  // Check build-time cache first
+  if (cachedReadmes && repoName in cachedReadmes) {
+    return cachedReadmes[repoName];
+  }
+
   const RAW = 'https://raw.githubusercontent.com';
   // Try common README filenames (HEAD resolves to default branch)
   for (const name of ['README.md', 'readme.md', 'Readme.md', 'README.rst', 'README.txt', 'README']) {
@@ -112,6 +123,11 @@ export async function fetchReadme(owner, repoName) {
  * @returns {Promise<Array<{path:string,type:string}>|null>}
  */
 export async function fetchFileTree(owner, repoName) {
+  // Check build-time cache first
+  if (cachedFileTrees && repoName in cachedFileTrees) {
+    return cachedFileTrees[repoName];
+  }
+
   try {
     const res = await fetch(`${GH_API}/repos/${owner}/${repoName}/contents/`, {
       headers: GH_HEADERS,

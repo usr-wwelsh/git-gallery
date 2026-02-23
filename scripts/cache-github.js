@@ -112,7 +112,52 @@ async function fetchAll() {
     console.warn('  Failed contributions:', err.message);
   }
 
-  return { repos, languages, contributions };
+  // 4. READMEs (via raw.githubusercontent.com — no API rate limit)
+  console.log('  Fetching READMEs…');
+  const readmes = {};
+  const RAW = 'https://raw.githubusercontent.com';
+  const README_NAMES = ['README.md', 'readme.md', 'Readme.md', 'README.rst', 'README.txt', 'README'];
+  for (const repo of repos) {
+    const owner = repo.full_name.split('/')[0];
+    let found = false;
+    for (const name of README_NAMES) {
+      try {
+        const res = await fetch(`${RAW}/${owner}/${repo.name}/HEAD/${name}`);
+        if (res.ok) {
+          readmes[repo.name] = await res.text();
+          found = true;
+          break;
+        }
+      } catch { /* try next */ }
+    }
+    if (!found) readmes[repo.name] = null;
+  }
+  console.log(`  Fetched ${Object.values(readmes).filter(Boolean).length} READMEs`);
+
+  // 5. File trees (Contents API)
+  console.log('  Fetching file trees…');
+  const fileTrees = {};
+  for (const chunk of chunks) {
+    await Promise.all(
+      chunk.map(async repo => {
+        const owner = repo.full_name.split('/')[0];
+        try {
+          const data = await ghFetch(`${GH_API}/repos/${owner}/${repo.name}/contents/`);
+          if (Array.isArray(data)) {
+            fileTrees[repo.name] = data.map(e => ({ path: e.name, type: e.type === 'dir' ? 'tree' : 'blob' }));
+          } else {
+            fileTrees[repo.name] = null;
+          }
+        } catch (err) {
+          console.warn(`  Failed file tree for ${repo.name}: ${err.message}`);
+          fileTrees[repo.name] = null;
+        }
+      })
+    );
+  }
+  console.log(`  Fetched ${Object.values(fileTrees).filter(Boolean).length} file trees`);
+
+  return { repos, languages, contributions, readmes, fileTrees };
 }
 
 // ---------------------------------------------------------------------------
