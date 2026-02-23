@@ -170,9 +170,10 @@ try {
     process.exit(0);
   }
 
-  const outPath = resolve(ROOT, 'public/github-data.json');
-  writeFileSync(outPath, JSON.stringify(data));
-  const sizeKB = (Buffer.byteLength(JSON.stringify(data)) / 1024).toFixed(1);
+  const json = JSON.stringify(data);
+  const outPath = resolve(ROOT, 'src/github-data.json');
+  writeFileSync(outPath, json);
+  const sizeKB = (Buffer.byteLength(json) / 1024).toFixed(1);
   console.log(`Wrote ${outPath} (${sizeKB} KB)`);
 } catch (err) {
   console.error('Cache script failed:', err.message);

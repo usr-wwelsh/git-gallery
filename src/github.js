@@ -5,9 +5,10 @@ const GH_HEADERS = GH_TOKEN
   ? { Accept: 'application/vnd.github.v3+json', Authorization: `token ${GH_TOKEN}` }
   : { Accept: 'application/vnd.github.v3+json' };
 
-// Build-time cache for READMEs and file trees (populated by fetchAllData if cached data exists)
-let cachedReadmes = null;
-let cachedFileTrees = null;
+// Build-time cached data — Vite bundles this into the JS if the file exists,
+// otherwise the glob returns an empty object and we fall through to live API.
+const cachedModules = import.meta.glob('./github-data.json', { eager: true });
+const CACHED_DATA = cachedModules['./github-data.json']?.default || null;
 
 /**
  * Fetch all data needed for the gallery.
@@ -16,20 +17,11 @@ let cachedFileTrees = null;
  * @returns {{ repos: object[], languages: Record<string,Record<string,number>>, contributions: object[] }}
  */
 export async function fetchAllData(username, onProgress = () => {}) {
-  // Try build-time cached data first (avoids GitHub API rate limits in production)
-  try {
-    const res = await fetch('/github-data.json');
-    const ct = res.headers.get('content-type') || '';
-    if (res.ok && ct.includes('application/json')) {
-      const data = await res.json();
-      if (data && Array.isArray(data.repos)) {
-        if (data.readmes) cachedReadmes = data.readmes;
-        if (data.fileTrees) cachedFileTrees = data.fileTrees;
-        onProgress('Loaded cached data', 90);
-        return data;
-      }
-    }
-  } catch { /* fall through to live API */ }
+  // Use build-time cached data if available (avoids GitHub API rate limits in production)
+  if (CACHED_DATA && Array.isArray(CACHED_DATA.repos)) {
+    onProgress('Loaded cached data', 90);
+    return CACHED_DATA;
+  }
 
   onProgress('Fetching repositories…', 5);
 
@@ -103,8 +95,8 @@ export async function fetchAllData(username, onProgress = () => {}) {
  */
 export async function fetchReadme(owner, repoName) {
   // Check build-time cache first
-  if (cachedReadmes && repoName in cachedReadmes) {
-    return cachedReadmes[repoName];
+  if (CACHED_DATA?.readmes && repoName in CACHED_DATA.readmes) {
+    return CACHED_DATA.readmes[repoName];
   }
 
   const RAW = 'https://raw.githubusercontent.com';
@@ -124,8 +116,8 @@ export async function fetchReadme(owner, repoName) {
  */
 export async function fetchFileTree(owner, repoName) {
   // Check build-time cache first
-  if (cachedFileTrees && repoName in cachedFileTrees) {
-    return cachedFileTrees[repoName];
+  if (CACHED_DATA?.fileTrees && repoName in CACHED_DATA.fileTrees) {
+    return CACHED_DATA.fileTrees[repoName];
   }
 
   try {
