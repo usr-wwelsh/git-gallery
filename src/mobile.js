@@ -44,7 +44,7 @@ export function createMobileControls(camera, config) {
   const listeners = {};
 
   // Sensitivity
-  const lookSensitivity = 0.006;
+  const lookSensitivity = 0.015;
   const joystickDeadzone = 10;
   const joystickMaxRadius = 60;
 
