@@ -37,7 +37,7 @@ export async function fetchAllData(username, onProgress = () => {}) {
     repos = all
       .filter(r => !r.fork)
       .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
-      .slice(0, 20);
+      .slice(0, 30);
   } catch (err) {
     console.warn('Failed to fetch repos:', err);
   }

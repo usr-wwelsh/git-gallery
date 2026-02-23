@@ -72,7 +72,7 @@ async function fetchAll() {
     repos = all
       .filter(r => !r.fork)
       .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
-      .slice(0, 20);
+      .slice(0, 30);
     console.log(`  Found ${repos.length} repos`);
   } catch (err) {
     console.warn('  Failed to fetch repos:', err.message);
