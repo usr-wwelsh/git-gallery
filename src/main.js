@@ -223,7 +223,8 @@ async function init() {
 
   hideLoading();
   if (isMobile) {
-    // Mobile shows tap-to-start via mobile controls overlay
+    // Hide desktop instructions overlay — mobile uses tap-to-start instead
+    hideInstructions();
   } else {
     showInstructions();
   }
