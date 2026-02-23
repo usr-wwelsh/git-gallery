@@ -157,7 +157,31 @@ async function fetchAll() {
   }
   console.log(`  Fetched ${Object.values(fileTrees).filter(Boolean).length} file trees`);
 
-  return { username: USERNAME, repos, languages, contributions, readmes, fileTrees };
+  // 6. Commits (recent 10 per repo)
+  console.log('  Fetching commits…');
+  const commits = {};
+  for (const chunk of chunks) {
+    await Promise.all(
+      chunk.map(async repo => {
+        const owner = repo.full_name.split('/')[0];
+        try {
+          const data = await ghFetch(`${GH_API}/repos/${owner}/${repo.name}/commits?per_page=10`);
+          commits[repo.name] = data.map(c => ({
+            sha: c.sha.slice(0, 7),
+            message: (c.commit.message || '').split('\n')[0].slice(0, 80),
+            date: c.commit.author?.date || '',
+            author: c.commit.author?.name || c.author?.login || '',
+          }));
+        } catch (err) {
+          console.warn(`  Failed commits for ${repo.name}: ${err.message}`);
+          commits[repo.name] = null;
+        }
+      })
+    );
+  }
+  console.log(`  Fetched commits for ${Object.values(commits).filter(Boolean).length} repos`);
+
+  return { username: USERNAME, repos, languages, contributions, readmes, fileTrees, commits };
 }
 
 // ---------------------------------------------------------------------------

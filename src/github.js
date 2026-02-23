@@ -142,6 +142,11 @@ export async function fetchFileTree(owner, repoName) {
  * @returns {Promise<Array<{sha:string, message:string, date:string, author:string}>|null>}
  */
 export async function fetchCommits(owner, repoName, limit = 10) {
+  // Check build-time cache first
+  if (CACHED_DATA?.commits && repoName in CACHED_DATA.commits) {
+    return CACHED_DATA.commits[repoName];
+  }
+
   try {
     const res = await fetch(
       `${GH_API}/repos/${owner}/${repoName}/commits?per_page=${limit}`,

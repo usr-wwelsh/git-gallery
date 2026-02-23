@@ -347,8 +347,9 @@ function createFileTreePanel(roomGroup, rw, rh, rd, langColor) {
   const mat  = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
 
-  // Back wall — the first wall you see when entering through the doorway
-  mesh.position.set(0, rh * 0.55, -rd / 2 + 0.15);
+  // Back wall (right half) — side by side with languages panel
+  const gap = 0.2;
+  mesh.position.set(panelW / 2 + gap / 2, rh * 0.55, -rd / 2 + 0.15);
   mesh.visible = true;
   roomGroup.add(mesh);
 
@@ -408,9 +409,9 @@ function createLangPanel(roomGroup, langData, rw, rh, rd, langColor) {
   const mat  = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
 
-  // Front wall — facing inward (-Z)
-  mesh.position.set(0, rh * 0.55, rd / 2 - 0.15);
-  mesh.rotation.y = Math.PI;
+  // Back wall (left half) — side by side with file tree panel
+  const gap = 0.2;
+  mesh.position.set(-(panelW / 2 + gap / 2), rh * 0.55, -rd / 2 + 0.15);
   roomGroup.add(mesh);
 }
 
@@ -511,7 +512,9 @@ function createReadmePanels(roomGroup, rw, rh, rd, side) {
     const mat  = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
     // Outer side wall — facing inward toward the room
-    const z = startZ + p * (panelW + gap);
+    // Flip Z order for left-side rooms so panels read 1→3 left-to-right
+    const idx = side < 0 ? (2 - p) : p;
+    const z = startZ + idx * (panelW + gap);
     mesh.position.set(side * (rw / 2 - 0.15), rh / 2, z);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     mesh.visible = false;
@@ -781,7 +784,7 @@ function drawReadmePage(canvas, lines, pageNum, totalPages, imageMap) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Commit timeline panel (inner side wall, forward half)
+//  Commit timeline panel (back wall, right half)
 // ─────────────────────────────────────────────────────────────
 function createCommitPanel(roomGroup, rw, rh, rd, side, langColor) {
   const panelW = Math.min(rw - 1, 3.0);
@@ -796,10 +799,9 @@ function createCommitPanel(roomGroup, rw, rh, rd, side, langColor) {
   const mat  = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
 
-  // Inner side wall, forward half (positive Z local = toward hallway)
-  const infoX = -side * (rw / 2 - 0.15);
-  mesh.position.set(infoX, rh * 0.5, rd * 0.25);
-  mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+  // Front wall — facing inward (-Z)
+  mesh.position.set(0, rh * 0.5, rd / 2 - 0.15);
+  mesh.rotation.y = Math.PI;
   mesh.visible = false;
   roomGroup.add(mesh);
 
