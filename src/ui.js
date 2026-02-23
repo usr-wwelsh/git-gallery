@@ -52,11 +52,11 @@ export function hideTooltip() {
 
 /**
  * Draw a top-down minimap.
- * @param {THREE.Camera} camera
+ * @param {THREE.Vector3} playerPos — player world position
  * @param {{ position: THREE.Vector3, repoName: string }[]} roomMeta
  * @param {object} config  — { hallLength, roomDepth }
  */
-export function updateMinimap(camera, roomMeta, config) {
+export function updateMinimap(playerPos, roomMeta, config) {
   if (!minimapCtx || !$minimap.classList.contains('visible')) return;
 
   const W = $minimap.width;
@@ -107,8 +107,7 @@ export function updateMinimap(camera, roomMeta, config) {
   });
 
   // Player dot
-  const camPos = camera.position;
-  const p = worldToMap(camPos.x, camPos.z);
+  const p = worldToMap(playerPos.x, playerPos.z);
 
   ctx.save();
   ctx.translate(p.x, p.y);

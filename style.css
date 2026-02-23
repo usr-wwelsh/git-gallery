@@ -292,7 +292,8 @@ kbd {
   display: none;
   gap: 0.4rem;
   align-items: center;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   white-space: nowrap;
 }
 

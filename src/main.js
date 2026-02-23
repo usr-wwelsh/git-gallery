@@ -101,6 +101,11 @@ const isMobile = isTouchDevice();
 
 const PLAYER_RADIUS = 0.35;
 
+/** Get the player's world position (works for both desktop and mobile controls). */
+function getPlayerPos() {
+  return controls ? controls.getObject().position : camera.position;
+}
+
 async function init() {
   // Fetch data
   const { repos, languages, contributions } = await fetchAllData(
@@ -144,7 +149,10 @@ async function init() {
   if (isMobile) {
     controls = createMobileControls(camera, CONFIG.player);
     scene.add(controls.getObject());
-    controls.addEventListener('lock', () => { audio.resume(); });
+    controls.addEventListener('lock', () => {
+      audio.resume();
+      hideInstructions();
+    });
     controls.addEventListener('unlock', () => {});
   } else {
     controls = createControls(camera, renderer.domElement, CONFIG.player);
@@ -158,31 +166,48 @@ async function init() {
     });
   }
 
-  // T key for room directory (desktop only)
+  // Shared directory open/select logic
+  function openDirectory() {
+    controls.unlock();
+    showDirectory(roomMeta, (room) => {
+      hideDirectory();
+      if (room) {
+        teleportToRoom(camera, controls, room, CONFIG);
+        setHash('room', room.repoName);
+        if (room.roomGroup) room.roomGroup.visible = true;
+        currentRoom = room;
+        if (!room.readmeLoaded) {
+          showReadmePlaceholder(room);
+          loadRoomContent(room);
+        }
+      } else {
+        teleportToLobby(camera, controls, CONFIG);
+        setHash('lobby');
+      }
+      controls.lock();
+    });
+  }
+
+  // T key for room directory (desktop)
   if (!isMobile) {
     document.addEventListener('keydown', (e) => {
       if (e.code === 'KeyT' && controls.isLocked) {
         e.preventDefault();
-        controls.unlock();
-        showDirectory(roomMeta, (room) => {
-          hideDirectory();
-          if (room) {
-            teleportToRoom(camera, controls, room, CONFIG);
-            setHash('room', room.repoName);
-            // Ensure room is visible (frustum culling compat)
-            if (room.roomGroup) room.roomGroup.visible = true;
-            // Trigger content load
-            currentRoom = room;
-            if (!room.readmeLoaded) {
-              showReadmePlaceholder(room);
-              loadRoomContent(room);
-            }
-          } else {
-            teleportToLobby(camera, controls, CONFIG);
-            setHash('lobby');
-          }
-          controls.lock();
-        });
+        openDirectory();
+      }
+    });
+  }
+
+  // Teleport badge click (both desktop and mobile)
+  const teleportBadge = document.getElementById('teleport-badge');
+  if (teleportBadge) {
+    teleportBadge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isDirectoryVisible()) {
+        hideDirectory();
+        controls.lock();
+      } else {
+        openDirectory();
       }
     });
   }
@@ -249,7 +274,7 @@ function loop() {
     const subDelta = delta / steps;
     for (let s = 0; s < steps; s++) {
       controls.updateMovement(subDelta);
-      if (controls.isLocked) resolveCollisions(camera.position, wallBoxes, PLAYER_RADIUS);
+      if (controls.isLocked) resolveCollisions(getPlayerPos(), wallBoxes, PLAYER_RADIUS);
     }
   }
 
@@ -259,7 +284,7 @@ function loop() {
   }
 
   // Frustum culling — distance-based room visibility
-  updateRoomVisibility(camera, roomMeta, 35);
+  updateRoomVisibility(getPlayerPos(), roomMeta, 35);
 
   // Artifact animation (spin + bob)
   artifacts.forEach((art, i) => {
@@ -283,7 +308,8 @@ function loop() {
   }
 
   // Room entry detection → lazy README + file tree + commits load
-  const detectedRoom = getPlayerRoom(camera, roomMeta, CONFIG.museum);
+  const playerPos = getPlayerPos();
+  const detectedRoom = getPlayerRoom(playerPos, roomMeta, CONFIG.museum);
   if (detectedRoom !== currentRoom) {
     currentRoom = detectedRoom;
     if (currentRoom) {
@@ -298,7 +324,7 @@ function loop() {
   }
 
   // Minimap
-  updateMinimap(camera, roomMeta, CONFIG.museum);
+  updateMinimap(playerPos, roomMeta, CONFIG.museum);
 
   renderer.render(scene, camera);
 }
@@ -311,10 +337,10 @@ function loop() {
  * Distance-based room visibility culling.
  * Hides room groups beyond `maxDist` units from camera (squared distance, no sqrt).
  */
-function updateRoomVisibility(camera, rooms, maxDist) {
+function updateRoomVisibility(pos, rooms, maxDist) {
   const maxDistSq = maxDist * maxDist;
-  const cx = camera.position.x;
-  const cz = camera.position.z;
+  const cx = pos.x;
+  const cz = pos.z;
   for (const rm of rooms) {
     if (!rm.roomGroup) continue;
     const dx = rm.position.x - cx;
@@ -366,11 +392,11 @@ function resolveCollisions(pos, boxes, radius) {
   }
 }
 
-/** Returns the room the camera is currently inside, or null. */
-function getPlayerRoom(camera, rooms, museumCfg) {
+/** Returns the room the player is currently inside, or null. */
+function getPlayerRoom(pos, rooms, museumCfg) {
   const rd = museumCfg.roomDepth  || 10;
-  const px = camera.position.x;
-  const pz = camera.position.z;
+  const px = pos.x;
+  const pz = pos.z;
 
   for (const rm of rooms) {
     const cx = rm.position.x;
