@@ -3,7 +3,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+ARG VITE_GITHUB_TOKEN
+ENV VITE_GITHUB_TOKEN=$VITE_GITHUB_TOKEN
+RUN node scripts/cache-github.js && npm run build
 
 FROM node:20-alpine
 RUN npm install -g serve
