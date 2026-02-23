@@ -263,9 +263,15 @@ function buildInnerSideWall(roomGroup, wallMat, rw, rh, rd, side) {
   addBox(roomGroup, 0.2, rh, segLen, wallMat, wx, rh / 2, -(rd / 2 - segLen / 2));
   // Front solid segment
   addBox(roomGroup, 0.2, rh, segLen, wallMat, wx, rh / 2, rd / 2 - segLen / 2);
-  // Lintel above the opening
+  // Lintel above the opening (NOT tagged as wall — the 2D XZ collision
+  // code would project it down as an invisible barrier across the doorway)
   if (lintelH > 0) {
-    addBox(roomGroup, 0.2, lintelH, INNER_DOOR_W, wallMat, wx, INNER_DOOR_H + lintelH / 2, 0);
+    const lintel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, lintelH, INNER_DOOR_W),
+      wallMat
+    );
+    lintel.position.set(wx, INNER_DOOR_H + lintelH / 2, 0);
+    roomGroup.add(lintel);
   }
 }
 

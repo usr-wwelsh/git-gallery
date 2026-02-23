@@ -212,7 +212,7 @@ function loop() {
  * Runs multiple iterations to handle corners cleanly.
  */
 function resolveCollisions(pos, boxes, radius) {
-  for (let iter = 0; iter < 2; iter++) {
+  for (let iter = 0; iter < 3; iter++) {
     for (const box of boxes) {
       // Nearest point on AABB to player (XZ plane only)
       const nearX = Math.max(box.min.x, Math.min(pos.x, box.max.x));
