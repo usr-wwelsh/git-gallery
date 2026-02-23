@@ -172,13 +172,26 @@ export function buildMuseum(repos, languages, config, scene) {
     // ── Neon blade sign: juts from inner wall into hallway ──
     createNeonSign(roomGroup, repo.name, lang, langColor, rw, rh, rd, side, hallWidth);
 
-    // ── Floating artifact ──
+    // ── Podium + floating artifact ──
+    const podiumH = 1.0;
+    const podiumR = 0.5;
+    const podiumZ = -rd / 2 + rd * 0.45;
+    const podiumGeo = new THREE.CylinderGeometry(podiumR, podiumR * 1.15, podiumH, 24);
+    const podiumMat = new THREE.MeshStandardMaterial({
+      color: 0x2a2a2a,
+      roughness: 0.2,
+      metalness: 0.1,
+    });
+    const podium = new THREE.Mesh(podiumGeo, podiumMat);
+    podium.position.set(0, podiumH / 2, podiumZ);
+    roomGroup.add(podium);
+
     const geoIdx   = langHashIndex(lang, ARTIFACT_GEOS.length);
     const artGeo   = ARTIFACT_GEOS[geoIdx]();
     const artColor = new THREE.Color(langColor);
     const artifact = new THREE.Mesh(artGeo, makeArtifactMaterial('#' + artColor.getHexString()));
-    const baseY    = rh * 0.52;
-    artifact.position.set(0, baseY, -rd / 2 + rd * 0.45);
+    const baseY    = podiumH + 0.6;
+    artifact.position.set(0, baseY, podiumZ);
     artifact.userData.isArtifact = true;
     artifact.userData.baseY      = baseY;
     roomGroup.add(artifact);
@@ -336,7 +349,7 @@ function makeNeonSignCanvas(name, langColor) {
 // ─────────────────────────────────────────────────────────────
 function createFileTreePanel(roomGroup, rw, rh, rd, langColor) {
   const panelW = Math.min(rw - 1, 3.0);
-  const panelH = rh * 0.6;
+  const panelH = Math.min(rh * 0.6, 3.2);
 
   const canvas = document.createElement('canvas');
   canvas.width  = FILETREE_W;
@@ -349,7 +362,7 @@ function createFileTreePanel(roomGroup, rw, rh, rd, langColor) {
 
   // Back wall (right half) — side by side with languages panel
   const gap = 0.2;
-  mesh.position.set(panelW / 2 + gap / 2, rh * 0.55, -rd / 2 + 0.15);
+  mesh.position.set(panelW / 2 + gap / 2, panelH / 2 + 0.8, -rd / 2 + 0.15);
   mesh.visible = true;
   roomGroup.add(mesh);
 
@@ -398,7 +411,7 @@ function drawFileTree(canvas, entries, langColor) {
 // ─────────────────────────────────────────────────────────────
 function createLangPanel(roomGroup, langData, rw, rh, rd, langColor) {
   const panelW = Math.min(rw - 1, 3.0);
-  const panelH = rh * 0.6;
+  const panelH = Math.min(rh * 0.6, 3.2);
 
   const canvas = document.createElement('canvas');
   canvas.width  = LANGPANEL_W;
@@ -411,7 +424,7 @@ function createLangPanel(roomGroup, langData, rw, rh, rd, langColor) {
 
   // Back wall (left half) — side by side with file tree panel
   const gap = 0.2;
-  mesh.position.set(-(panelW / 2 + gap / 2), rh * 0.55, -rd / 2 + 0.15);
+  mesh.position.set(-(panelW / 2 + gap / 2), panelH / 2 + 0.8, -rd / 2 + 0.15);
   roomGroup.add(mesh);
 }
 
@@ -496,7 +509,7 @@ function createReadmePanels(roomGroup, rw, rh, rd, side) {
   const gap     = 0.3;                              // gap between panels and from walls
   const usableZ = rd - gap * 2;                     // Z space inside front/back walls
   const panelW  = Math.min((usableZ - gap * 2) / 3, 2.5); // fit 3 panels with gaps between
-  const panelH  = rh * 0.68;
+  const panelH  = Math.min(rh * 0.68, 3.0);
   const meshes  = [], canvases = [], textures = [];
 
   // Evenly distribute 3 panels along usable Z range
@@ -515,7 +528,7 @@ function createReadmePanels(roomGroup, rw, rh, rd, side) {
     // Flip Z order for left-side rooms so panels read 1→3 left-to-right
     const idx = side < 0 ? (2 - p) : p;
     const z = startZ + idx * (panelW + gap);
-    mesh.position.set(side * (rw / 2 - 0.15), rh / 2, z);
+    mesh.position.set(side * (rw / 2 - 0.15), panelH / 2 + 0.8, z);
     mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     mesh.visible = false;
     roomGroup.add(mesh);
@@ -788,7 +801,7 @@ function drawReadmePage(canvas, lines, pageNum, totalPages, imageMap) {
 // ─────────────────────────────────────────────────────────────
 function createCommitPanel(roomGroup, rw, rh, rd, side, langColor) {
   const panelW = Math.min(rw - 1, 3.0);
-  const panelH = rh * 0.6;
+  const panelH = Math.min(rh * 0.6, 3.2);
 
   const canvas = document.createElement('canvas');
   canvas.width  = COMMIT_W;
@@ -800,7 +813,7 @@ function createCommitPanel(roomGroup, rw, rh, rd, side, langColor) {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
 
   // Front wall — facing inward (-Z)
-  mesh.position.set(0, rh * 0.5, rd / 2 - 0.15);
+  mesh.position.set(0, panelH / 2 + 0.8, rd / 2 - 0.15);
   mesh.rotation.y = Math.PI;
   mesh.visible = false;
   roomGroup.add(mesh);

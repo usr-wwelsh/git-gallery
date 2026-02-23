@@ -22,7 +22,7 @@ export const CONFIG = {
     damping:       12,    // higher = snappier response
   },
 
-  roomHeight: 5,
+  roomHeight: 6.5,
 
   lobby: {
     cubeSize:     0.3,
@@ -35,8 +35,8 @@ export const CONFIG = {
     hallWidth:     4,
     hallLength:    10,
     roomDepth:     10,
-    roomHeight:    5,
-    baseRoomWidth: 8,
+    roomHeight:    6.5,
+    baseRoomWidth: 10,
   },
 };
 

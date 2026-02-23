@@ -1,3 +1,5 @@
+import { Euler as ThreeEuler } from 'three';
+
 /**
  * URL hash routing — deep-link to rooms or lobby.
  * Hash format: #lobby or #room/repo-name
@@ -39,9 +41,20 @@ export function setHash(type, repoName) {
 export function teleportToRoom(camera, controls, room, config) {
   const rd = config.museum.roomDepth || 10;
   const pos = controls.getObject ? controls.getObject().position : camera.position;
-  pos.x = room.position.x;
+  // Land just inside the doorway (inner wall side), offset toward hallway
+  const side = room.position.x > 0 ? 1 : -1;
+  pos.x = room.position.x - side * (room.rw / 2 - 1.5);
   pos.y = config.player.height;
   pos.z = room.position.z;
+
+  // Face toward the README panels (outer side wall, opposite the doorway)
+  // PointerLockControls reads facing from camera.quaternion directly (YXZ euler)
+  if (controls.getObject) {
+    controls.getObject().rotation.set(0, 0, 0);
+  }
+  const facingY = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+  const euler = new ThreeEuler(0, facingY, 0, 'YXZ');
+  camera.quaternion.setFromEuler(euler);
 }
 
 /**
