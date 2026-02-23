@@ -49,6 +49,10 @@ export function createControls(camera, domElement, config) {
 
     // Lock Y (no gravity / no jumping)
     controls.getObject().position.y = height;
+
+    // Expose movement state for audio
+    controls.isMoving  = inputX !== 0 || inputZ !== 0;
+    controls.isRunning = controls.isMoving && (keys['ShiftLeft'] || keys['ShiftRight']);
   };
 
   controls.dispose = (function (originalDispose) {

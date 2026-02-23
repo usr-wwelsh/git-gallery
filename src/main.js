@@ -1,9 +1,13 @@
 import * as THREE from 'three';
-import { fetchAllData, fetchReadme, fetchFileTree } from './github.js';
+import { fetchAllData, fetchReadme, fetchFileTree, fetchCommits } from './github.js';
 import { buildLobby }   from './lobby.js';
-import { buildMuseum, renderReadmeToRoom, showReadmePlaceholder, renderFileTree } from './museum.js';
+import { buildMuseum, renderReadmeToRoom, showReadmePlaceholder, renderFileTree, renderCommitTimeline } from './museum.js';
 import { createControls } from './controls.js';
-import { initUI, setLoading, hideLoading, showInstructions, hideInstructions, showTooltip, hideTooltip, updateMinimap } from './ui.js';
+import { initUI, setLoading, hideLoading, showInstructions, hideInstructions, showTooltip, hideTooltip, updateMinimap, showDirectory, hideDirectory, isDirectoryVisible } from './ui.js';
+import { createStarfield } from './starfield.js';
+import { createAudioManager } from './audio.js';
+import { parseHash, setHash, teleportToRoom, teleportToLobby } from './router.js';
+import { isTouchDevice, createMobileControls } from './mobile.js';
 
 // ============================================================
 //  CONFIG — change `username` to explore any GitHub user
@@ -59,6 +63,9 @@ camera.lookAt(0, CONFIG.player.height, 0);
 // Global ambient — bright enough to see walls/floors clearly
 scene.add(new THREE.AmbientLight(0xffffff, 1.8));
 
+// Starfield skybox
+createStarfield(scene);
+
 // ============================================================
 //  Raycaster for tooltips
 // ============================================================
@@ -88,6 +95,9 @@ let roomMeta     = [];
 let wallBoxes    = [];  // collision AABBs
 let clock       = new THREE.Clock();
 let currentRoom = null; // room the player is currently inside
+
+const audio = createAudioManager();
+const isMobile = isTouchDevice();
 
 const PLAYER_RADIUS = 0.35;
 
@@ -130,22 +140,93 @@ async function init() {
 
   setLoading('Entering gallery…', 100);
 
-  // Create controls
-  controls = createControls(camera, renderer.domElement, CONFIG.player);
-  scene.add(controls.getObject());
+  // Create controls (mobile or desktop)
+  if (isMobile) {
+    controls = createMobileControls(camera, CONFIG.player);
+    scene.add(controls.getObject());
+    controls.addEventListener('lock', () => { audio.resume(); });
+    controls.addEventListener('unlock', () => {});
+  } else {
+    controls = createControls(camera, renderer.domElement, CONFIG.player);
+    scene.add(controls.getObject());
+    controls.addEventListener('lock', () => {
+      if (!isDirectoryVisible()) hideInstructions();
+      audio.resume();
+    });
+    controls.addEventListener('unlock', () => {
+      if (!isDirectoryVisible()) showInstructions();
+    });
+  }
 
-  controls.addEventListener('lock', () => {
-    hideInstructions();
-  });
-  controls.addEventListener('unlock', () => {
-    showInstructions();
+  // T key for room directory (desktop only)
+  if (!isMobile) {
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyT' && controls.isLocked) {
+        e.preventDefault();
+        controls.unlock();
+        showDirectory(roomMeta, (room) => {
+          hideDirectory();
+          if (room) {
+            teleportToRoom(camera, controls, room, CONFIG);
+            setHash('room', room.repoName);
+            // Ensure room is visible (frustum culling compat)
+            if (room.roomGroup) room.roomGroup.visible = true;
+            // Trigger content load
+            currentRoom = room;
+            if (!room.readmeLoaded) {
+              showReadmePlaceholder(room);
+              loadRoomContent(room);
+            }
+          } else {
+            teleportToLobby(camera, controls, CONFIG);
+            setHash('lobby');
+          }
+          controls.lock();
+        });
+      }
+    });
+  }
+
+  // Hash routing: teleport on init
+  const initialHash = parseHash();
+  if (initialHash.type === 'room' && initialHash.repoName) {
+    const targetRoom = roomMeta.find(rm => rm.repoName === initialHash.repoName);
+    if (targetRoom) {
+      teleportToRoom(camera, controls, targetRoom, CONFIG);
+      if (targetRoom.roomGroup) targetRoom.roomGroup.visible = true;
+      currentRoom = targetRoom;
+      if (!targetRoom.readmeLoaded) {
+        showReadmePlaceholder(targetRoom);
+        loadRoomContent(targetRoom);
+      }
+    }
+  }
+
+  // Listen for manual hash changes
+  window.addEventListener('hashchange', () => {
+    const h = parseHash();
+    if (h.type === 'room' && h.repoName) {
+      const rm = roomMeta.find(r => r.repoName === h.repoName);
+      if (rm) {
+        teleportToRoom(camera, controls, rm, CONFIG);
+        if (rm.roomGroup) rm.roomGroup.visible = true;
+        currentRoom = rm;
+        if (!rm.readmeLoaded) { showReadmePlaceholder(rm); loadRoomContent(rm); }
+      }
+    } else {
+      teleportToLobby(camera, controls, CONFIG);
+    }
   });
 
   // Small delay so the 100% bar is visible
   await new Promise(r => setTimeout(r, 400));
 
   hideLoading();
-  showInstructions();
+  if (isMobile) {
+    // Mobile shows tap-to-start via mobile controls overlay
+  } else {
+    showInstructions();
+  }
 
   // Start loop
   loop();
@@ -171,6 +252,14 @@ function loop() {
     }
   }
 
+  // Audio update
+  if (controls) {
+    audio.update(!!controls.isMoving, !!controls.isRunning, delta);
+  }
+
+  // Frustum culling — distance-based room visibility
+  updateRoomVisibility(camera, roomMeta, 35);
+
   // Artifact animation (spin + bob)
   artifacts.forEach((art, i) => {
     art.rotation.x += delta * 0.5;
@@ -192,13 +281,18 @@ function loop() {
     }
   }
 
-  // Room entry detection → lazy README + file tree load
+  // Room entry detection → lazy README + file tree + commits load
   const detectedRoom = getPlayerRoom(camera, roomMeta, CONFIG.museum);
   if (detectedRoom !== currentRoom) {
     currentRoom = detectedRoom;
-    if (currentRoom && !currentRoom.readmeLoaded) {
-      showReadmePlaceholder(currentRoom);
-      loadRoomContent(currentRoom);
+    if (currentRoom) {
+      setHash('room', currentRoom.repoName);
+      if (!currentRoom.readmeLoaded) {
+        showReadmePlaceholder(currentRoom);
+        loadRoomContent(currentRoom);
+      }
+    } else {
+      setHash('lobby');
     }
   }
 
@@ -211,6 +305,22 @@ function loop() {
 // ============================================================
 //  Room helpers
 // ============================================================
+
+/**
+ * Distance-based room visibility culling.
+ * Hides room groups beyond `maxDist` units from camera (squared distance, no sqrt).
+ */
+function updateRoomVisibility(camera, rooms, maxDist) {
+  const maxDistSq = maxDist * maxDist;
+  const cx = camera.position.x;
+  const cz = camera.position.z;
+  for (const rm of rooms) {
+    if (!rm.roomGroup) continue;
+    const dx = rm.position.x - cx;
+    const dz = rm.position.z - cz;
+    rm.roomGroup.visible = (dx * dx + dz * dz) < maxDistSq;
+  }
+}
 
 /**
  * Push the player out of any overlapping wall AABBs (circle-vs-AABB in XZ).
@@ -286,10 +396,11 @@ async function loadRoomContent(room) {
     ? room.repoFullName.split('/')
     : [CONFIG.username, room.repoName];
 
-  // Fetch README and file tree in parallel
-  const [markdown, tree] = await Promise.all([
+  // Fetch README, file tree, and commits in parallel
+  const [markdown, tree, commits] = await Promise.all([
     fetchReadme(owner, repo),
     fetchFileTree(owner, repo),
+    fetchCommits(owner, repo),
   ]);
 
   // Render README panels
@@ -327,6 +438,13 @@ async function loadRoomContent(room) {
     ftCtx.fillText('No files found', room.fileTreeCanvas.width / 2, room.fileTreeCanvas.height / 2);
     ftCtx.textAlign = 'left';
     room.fileTreeTexture.needsUpdate = true;
+  }
+
+  // Render commit timeline
+  if (commits && commits.length > 0) {
+    renderCommitTimeline(commits, room);
+  } else {
+    room.commitsLoaded = true;
   }
 }
 

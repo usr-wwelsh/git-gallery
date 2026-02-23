@@ -275,3 +275,185 @@ kbd {
 #minimap.visible {
   display: block;
 }
+
+/* Teleport badge */
+#teleport-badge {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  z-index: 10;
+  display: none;
+  gap: 0.4rem;
+  align-items: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+#teleport-badge kbd {
+  min-width: auto;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+}
+
+#teleport-badge.visible {
+  display: flex;
+}
+
+/* Room Directory Overlay */
+#directory {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 17, 23, 0.92);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  overflow-y: auto;
+}
+
+#directory-inner {
+  max-width: 640px;
+  width: 90%;
+  padding: 2rem;
+}
+
+#directory-inner h2 {
+  font-size: 1.5rem;
+  color: var(--accent-blue);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.dir-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.6rem;
+}
+
+.dir-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: border-color 0.15s ease;
+}
+
+.dir-card:hover {
+  border-color: var(--accent-blue);
+}
+
+.dir-lobby {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-green);
+}
+
+.dir-card-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dir-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.dir-lang-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Mobile Controls */
+#mobile-controls {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+#mobile-joystick-zone {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  height: 60%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#mobile-look-zone {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#mobile-joystick-base {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid rgba(88, 166, 255, 0.3);
+  background: rgba(88, 166, 255, 0.05);
+  display: none;
+}
+
+#mobile-joystick-thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: rgba(88, 166, 255, 0.4);
+  transition: none;
+}
+
+#mobile-tap-start {
+  position: fixed;
+  bottom: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1rem 2rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-blue);
+  border-radius: 12px;
+  color: var(--accent-blue);
+  font-size: 1.2rem;
+  font-family: inherit;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}

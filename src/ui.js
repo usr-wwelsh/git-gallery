@@ -1,4 +1,4 @@
-let $loading, $status, $bar, $instructions, $crosshair, $tooltip, $minimap, minimapCtx;
+let $loading, $status, $bar, $instructions, $crosshair, $tooltip, $minimap, minimapCtx, $directory, $teleportBadge;
 
 export function initUI() {
   $loading      = document.getElementById('loading-screen');
@@ -12,6 +12,7 @@ export function initUI() {
   $minimap.width  = 160;
   $minimap.height = 160;
   minimapCtx = $minimap.getContext('2d');
+  $teleportBadge = document.getElementById('teleport-badge');
 }
 
 export function setLoading(statusText, pct) {
@@ -29,12 +30,14 @@ export function hideLoading() {
 export function showInstructions() {
   if ($instructions) $instructions.classList.remove('hidden');
   if ($crosshair)    $crosshair.classList.remove('visible');
+  if ($teleportBadge) $teleportBadge.classList.remove('visible');
 }
 
 export function hideInstructions() {
   if ($instructions) $instructions.classList.add('hidden');
   if ($crosshair)    $crosshair.classList.add('visible');
   if ($minimap)      $minimap.classList.add('visible');
+  if ($teleportBadge) $teleportBadge.classList.add('visible');
 }
 
 export function showTooltip(text) {
@@ -121,4 +124,55 @@ export function updateMinimap(camera, roomMeta, config) {
   ctx.strokeStyle = '#30363d';
   ctx.lineWidth = 1;
   ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+}
+
+// ── Room directory overlay ──────────────────────────────────
+
+export function showDirectory(roomMeta, onSelect) {
+  if ($directory) $directory.remove();
+
+  $directory = document.createElement('div');
+  $directory.id = 'directory';
+
+  let html = '<div id="directory-inner">';
+  html += '<h2>Room Directory</h2>';
+  html += '<button class="dir-card dir-lobby" data-type="lobby">Lobby</button>';
+  html += '<div class="dir-grid">';
+
+  for (let i = 0; i < roomMeta.length; i++) {
+    const rm = roomMeta[i];
+    const langDot = `<span class="dir-lang-dot" style="background:${rm.langColor}"></span>`;
+    html += `<button class="dir-card" data-idx="${i}">
+      <span class="dir-card-name">${langDot}${escHtml(rm.repoName)}</span>
+      <span class="dir-card-meta">${rm.stars} stars &middot; ${rm.lang}</span>
+    </button>`;
+  }
+
+  html += '</div></div>';
+  $directory.innerHTML = html;
+  document.body.appendChild($directory);
+
+  $directory.addEventListener('click', (e) => {
+    const card = e.target.closest('.dir-card');
+    if (!card) return;
+    const type = card.dataset.type;
+    if (type === 'lobby') {
+      onSelect(null);
+    } else {
+      const idx = parseInt(card.dataset.idx, 10);
+      onSelect(roomMeta[idx]);
+    }
+  });
+}
+
+export function hideDirectory() {
+  if ($directory) { $directory.remove(); $directory = null; }
+}
+
+export function isDirectoryVisible() {
+  return !!$directory;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

@@ -105,15 +105,90 @@ export function buildLobby(contributions, config, scene) {
   backWall.userData.isWall = true;
   group.add(backWall);
 
-  // Side walls
+  // Side walls with windows to see the starfield
+  const windowCount = 3;
+  const windowW = 2.5;   // width of each window opening
+  const windowH = 2.0;   // height
+  const windowBottom = 1.2; // bottom of window from floor
+  const windowSpacing = floorD / (windowCount + 1);
+
   [-1, 1].forEach(side => {
-    const wall = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, wallH, floorD),
-      lobbyWallMat
-    );
-    wall.position.set(side * (floorW / 2 + 0.1), wallH / 2, floorCenterZ);
-    wall.userData.isWall = true;
-    group.add(wall);
+    const wx = side * (floorW / 2 + 0.1);
+
+    // Build wall segments around windows
+    for (let wi = 0; wi < windowCount; wi++) {
+      const wz = floorFront + windowSpacing * (wi + 1);
+
+      // Glass pane (transparent, no depth write so stars render behind it)
+      const glassMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(windowW, windowH),
+        new THREE.MeshBasicMaterial({
+          color: 0x88bbff,
+          transparent: true,
+          opacity: 0.08,
+          side: THREE.DoubleSide,
+          fog: false,
+          depthWrite: false,
+        })
+      );
+      glassMesh.position.set(wx, windowBottom + windowH / 2, wz);
+      glassMesh.rotation.y = Math.PI / 2;
+      group.add(glassMesh);
+    }
+
+    // Wall below windows (full length)
+    if (windowBottom > 0.1) {
+      const belowWall = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, windowBottom, floorD),
+        lobbyWallMat
+      );
+      belowWall.position.set(wx, windowBottom / 2, floorCenterZ);
+      belowWall.userData.isWall = true;
+      group.add(belowWall);
+    }
+
+    // Wall above windows (full length)
+    const aboveBottom = windowBottom + windowH;
+    const aboveH = wallH - aboveBottom;
+    if (aboveH > 0.1) {
+      const aboveWall = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, aboveH, floorD),
+        lobbyWallMat
+      );
+      aboveWall.position.set(wx, aboveBottom + aboveH / 2, floorCenterZ);
+      group.add(aboveWall);
+    }
+
+    // Wall pillars between windows (collision)
+    const sortedZs = [];
+    for (let wi = 0; wi < windowCount; wi++) {
+      sortedZs.push(floorFront + windowSpacing * (wi + 1));
+    }
+    // Segments: before first window, between windows, after last window
+    const segments = [];
+    let zCur = floorFront;
+    for (const wz of sortedZs) {
+      const segStart = zCur;
+      const segEnd = wz - windowW / 2;
+      if (segEnd - segStart > 0.05) {
+        segments.push({ z: (segStart + segEnd) / 2, len: segEnd - segStart });
+      }
+      zCur = wz + windowW / 2;
+    }
+    const lastEnd = floorFront + floorD;
+    if (lastEnd - zCur > 0.05) {
+      segments.push({ z: (zCur + lastEnd) / 2, len: lastEnd - zCur });
+    }
+
+    for (const seg of segments) {
+      const pillar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, windowH, seg.len),
+        lobbyWallMat
+      );
+      pillar.position.set(wx, windowBottom + windowH / 2, seg.z);
+      pillar.userData.isWall = true;
+      group.add(pillar);
+    }
   });
 
   // Front wall with hallway opening (z ≈ 0, museum transition)

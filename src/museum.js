@@ -19,6 +19,8 @@ const FILETREE_W = 400;
 const FILETREE_H = 680;
 const LANGPANEL_W = 400;
 const LANGPANEL_H = 680;
+const COMMIT_W = 400;
+const COMMIT_H = 680;
 
 // Inner-wall doorway dimensions (shared between build + portal)
 const INNER_DOOR_W = 2.6;
@@ -163,6 +165,10 @@ export function buildMuseum(repos, languages, config, scene) {
     const { meshes: readmeMeshes, canvases: readmeCanvases, textures: readmeTextures } =
       createReadmePanels(roomGroup, rw, rh, rd, side);
 
+    // ── Commit timeline panel: inner side wall (forward half) ──
+    const { mesh: commitMesh, canvas: commitCanvas, texture: commitTex } =
+      createCommitPanel(roomGroup, rw, rh, rd, side, langColor);
+
     // ── Neon blade sign: juts from inner wall into hallway ──
     createNeonSign(roomGroup, repo.name, lang, langColor, rw, rh, rd, side, hallWidth);
 
@@ -186,6 +192,7 @@ export function buildMuseum(repos, languages, config, scene) {
     group.add(roomGroup);
 
     roomMeta.push({
+      roomGroup,
       doorMesh:           portalMesh,
       position:           new THREE.Vector3(roomCenterX, 0, slotZ),
       repoName:           repo.name,
@@ -203,6 +210,10 @@ export function buildMuseum(repos, languages, config, scene) {
       fileTreeCanvas:  ftCanvas,
       fileTreeTexture: ftTex,
       fileTreeLoaded: false,
+      commitMesh:    commitMesh,
+      commitCanvas:  commitCanvas,
+      commitTexture: commitTex,
+      commitsLoaded: false,
     });
   });
 
@@ -767,6 +778,111 @@ function drawReadmePage(canvas, lines, pageNum, totalPages, imageMap) {
     ctx.font = '11px monospace'; ctx.fillStyle = '#484f58'; ctx.textAlign = 'right';
     ctx.fillText(`${pageNum + 1} / ${totalPages}`, W - PX, H - 8); ctx.textAlign = 'left';
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Commit timeline panel (inner side wall, forward half)
+// ─────────────────────────────────────────────────────────────
+function createCommitPanel(roomGroup, rw, rh, rd, side, langColor) {
+  const panelW = Math.min(rw - 1, 3.0);
+  const panelH = rh * 0.6;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = COMMIT_W;
+  canvas.height = COMMIT_H;
+  drawPlaceholderCanvas(canvas, '');
+
+  const tex  = new THREE.CanvasTexture(canvas);
+  const mat  = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
+
+  // Inner side wall, forward half (positive Z local = toward hallway)
+  const infoX = -side * (rw / 2 - 0.15);
+  mesh.position.set(infoX, rh * 0.5, rd * 0.25);
+  mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+  mesh.visible = false;
+  roomGroup.add(mesh);
+
+  return { mesh, canvas, texture: tex };
+}
+
+export function renderCommitTimeline(commits, room) {
+  if (!room.commitCanvas || !commits || commits.length === 0) {
+    room.commitsLoaded = true;
+    return;
+  }
+  const canvas = room.commitCanvas;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const PX = 14;
+
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#21262d'; ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, W - 2, H - 2);
+
+  ctx.font = 'bold 15px monospace'; ctx.fillStyle = room.langColor;
+  ctx.fillText('Recent Commits', PX, 26);
+  ctx.fillStyle = '#21262d'; ctx.fillRect(PX, 34, W - PX * 2, 1);
+
+  let y = 52;
+  for (const commit of commits) {
+    if (y > H - 30) break;
+
+    // SHA badge
+    ctx.font = '11px monospace'; ctx.fillStyle = '#58a6ff';
+    ctx.fillText(commit.sha, PX, y);
+
+    // Date
+    if (commit.date) {
+      const dateStr = new Date(commit.date).toLocaleDateString();
+      ctx.fillStyle = '#6e7681';
+      ctx.textAlign = 'right';
+      ctx.fillText(dateStr, W - PX, y);
+      ctx.textAlign = 'left';
+    }
+    y += 16;
+
+    // Message (wrapped)
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif'; ctx.fillStyle = '#c9d1d9';
+    const msg = commit.message || 'No message';
+    const lines = wrapTextLines(ctx, msg, W - PX * 2);
+    for (const line of lines) {
+      if (y > H - 16) break;
+      ctx.fillText(line, PX, y);
+      y += 16;
+    }
+
+    // Author
+    if (commit.author) {
+      ctx.font = '10px monospace'; ctx.fillStyle = '#8b949e';
+      ctx.fillText(`by ${commit.author}`, PX, y);
+      y += 14;
+    }
+
+    // Separator
+    y += 6;
+    ctx.fillStyle = '#21262d'; ctx.fillRect(PX, y, W - PX * 2, 1);
+    y += 10;
+  }
+
+  room.commitTexture.needsUpdate = true;
+  room.commitMesh.visible        = true;
+  room.commitsLoaded             = true;
+}
+
+function wrapTextLines(ctx, text, maxW) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line); line = word;
+      if (lines.length >= 2) { lines[lines.length - 1] += '...'; break; }
+    } else { line = test; }
+  }
+  if (line && lines.length < 2) lines.push(line);
+  return lines;
 }
 
 // ─────────────────────────────────────────────────────────────

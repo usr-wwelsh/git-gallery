@@ -134,6 +134,32 @@ export async function fetchFileTree(owner, repoName) {
   }
 }
 
+/**
+ * Fetch recent commits for a repo.
+ * @param {string} owner
+ * @param {string} repoName
+ * @param {number} limit
+ * @returns {Promise<Array<{sha:string, message:string, date:string, author:string}>|null>}
+ */
+export async function fetchCommits(owner, repoName, limit = 10) {
+  try {
+    const res = await fetch(
+      `${GH_API}/repos/${owner}/${repoName}/commits?per_page=${limit}`,
+      { headers: GH_HEADERS }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.map(c => ({
+      sha: c.sha.slice(0, 7),
+      message: (c.commit.message || '').split('\n')[0].slice(0, 80),
+      date: c.commit.author?.date || '',
+      author: c.commit.author?.name || c.author?.login || '',
+    }));
+  } catch {
+    return null;
+  }
+}
+
 function chunkArray(arr, size) {
   const chunks = [];
   for (let i = 0; i < arr.length; i += size) {
