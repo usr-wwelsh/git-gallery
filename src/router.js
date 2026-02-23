@@ -48,9 +48,16 @@ export function teleportToRoom(camera, controls, room, config) {
   pos.z = room.position.z;
 
   // Face toward the README panels (outer side wall, opposite the doorway)
-  // PointerLockControls reads/writes camera.quaternion directly via YXZ euler
   const facingY = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-  camera.quaternion.setFromEuler(new ThreeEuler(0, facingY, 0, 'YXZ'));
+  const obj = controls.getObject ? controls.getObject() : camera;
+  if (obj === camera) {
+    // Desktop: PointerLockControls reads camera.quaternion directly
+    camera.quaternion.setFromEuler(new ThreeEuler(0, facingY, 0, 'YXZ'));
+  } else {
+    // Mobile: yaw wrapper rotation + camera pitch
+    obj.rotation.y = facingY;
+    camera.rotation.set(0, 0, 0);
+  }
 }
 
 /**
