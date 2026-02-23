@@ -139,7 +139,8 @@ export function buildLobby(contributions, config, scene) {
         lobbyWallMat
       );
       lintel.position.set(0, 3.4 + lintelH / 2, floorFront);
-      lintel.userData.isWall = true;
+      // Not tagged as wall — it's above player height and the 2D XZ collision
+      // code would project it down as an invisible barrier across the doorway.
       group.add(lintel);
     }
   }
