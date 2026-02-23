@@ -288,7 +288,7 @@ kbd {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.35rem 0.65rem;
-  z-index: 10;
+  z-index: 45;
   display: none;
   gap: 0.4rem;
   align-items: center;
