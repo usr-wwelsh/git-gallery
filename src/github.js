@@ -1,5 +1,9 @@
 const CONTRIB_API = 'https://github-contributions-api.jogruber.de/v4';
 const GH_API = 'https://api.github.com';
+const GH_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || '';
+const GH_HEADERS = GH_TOKEN
+  ? { Accept: 'application/vnd.github.v3+json', Authorization: `token ${GH_TOKEN}` }
+  : { Accept: 'application/vnd.github.v3+json' };
 
 /**
  * Fetch all data needed for the gallery.
@@ -8,13 +12,24 @@ const GH_API = 'https://api.github.com';
  * @returns {{ repos: object[], languages: Record<string,Record<string,number>>, contributions: object[] }}
  */
 export async function fetchAllData(username, onProgress = () => {}) {
+  // Try build-time cached data first (avoids GitHub API rate limits in production)
+  try {
+    const res = await fetch('/github-data.json');
+    if (res.ok) {
+      const data = await res.json();
+      onProgress('Loaded cached data', 90);
+      return data;
+    }
+  } catch { /* fall through to live API */ }
+
   onProgress('Fetching repositories…', 5);
 
   // 1. Repos (sorted by stars, most popular first)
   let repos = [];
   try {
     const res = await fetch(
-      `${GH_API}/users/${username}/repos?per_page=100&sort=updated&type=public`
+      `${GH_API}/users/${username}/repos?per_page=100&sort=updated&type=public`,
+      { headers: GH_HEADERS }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const all = await res.json();
@@ -37,7 +52,7 @@ export async function fetchAllData(username, onProgress = () => {}) {
     await Promise.all(
       chunk.map(async repo => {
         try {
-          const res = await fetch(repo.languages_url);
+          const res = await fetch(repo.languages_url, { headers: GH_HEADERS });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           languages[repo.name] = await res.json();
         } catch (err) {
@@ -96,7 +111,7 @@ export async function fetchReadme(owner, repoName) {
 export async function fetchFileTree(owner, repoName) {
   try {
     const res = await fetch(`${GH_API}/repos/${owner}/${repoName}/contents/`, {
-      headers: { Accept: 'application/vnd.github.v3+json' },
+      headers: GH_HEADERS,
     });
     if (!res.ok) return null;
     const data = await res.json();
