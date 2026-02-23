@@ -211,7 +211,7 @@ export function createMobileControls(camera, config) {
       if (_isMoving) {
         const normX = joystickDX / joystickMaxRadius;
         const normY = joystickDY / joystickMaxRadius;
-        const moveSpeed = speed * (_isRunning ? runMultiplier : 1);
+        const moveSpeed = speed * 0.6 * (_isRunning ? runMultiplier : 1);
 
         const targetX = normX * moveSpeed;
         const targetZ = normY * moveSpeed;

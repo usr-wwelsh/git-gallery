@@ -307,6 +307,31 @@ kbd {
   display: flex;
 }
 
+#fullscreen-btn {
+  display: none;
+  position: fixed;
+  left: 16px;
+  top: 16px;
+  font-size: 1.4rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 2.2rem;
+  height: 2.2rem;
+  align-items: center;
+  justify-content: center;
+  z-index: 45;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  #fullscreen-btn {
+    display: flex;
+  }
+}
+
 /* Room Directory Overlay */
 #directory {
   position: fixed;

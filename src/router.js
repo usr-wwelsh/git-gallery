@@ -48,13 +48,9 @@ export function teleportToRoom(camera, controls, room, config) {
   pos.z = room.position.z;
 
   // Face toward the README panels (outer side wall, opposite the doorway)
-  // PointerLockControls reads facing from camera.quaternion directly (YXZ euler)
-  if (controls.getObject) {
-    controls.getObject().rotation.set(0, 0, 0);
-  }
+  // PointerLockControls reads/writes camera.quaternion directly via YXZ euler
   const facingY = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-  const euler = new ThreeEuler(0, facingY, 0, 'YXZ');
-  camera.quaternion.setFromEuler(euler);
+  camera.quaternion.setFromEuler(new ThreeEuler(0, facingY, 0, 'YXZ'));
 }
 
 /**

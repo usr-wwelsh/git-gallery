@@ -212,6 +212,19 @@ async function init() {
     });
   }
 
+  // Fullscreen toggle (mobile)
+  const fullscreenBtn = document.getElementById('fullscreen-btn');
+  if (fullscreenBtn) {
+    fullscreenBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        document.documentElement.requestFullscreen();
+      }
+    });
+  }
+
   // Hash routing: teleport on init
   const initialHash = parseHash();
   if (initialHash.type === 'room' && initialHash.repoName) {
