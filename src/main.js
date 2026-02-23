@@ -312,7 +312,17 @@ async function loadRoomContent(room) {
   if (tree && tree.length > 0) {
     renderFileTree(tree, room);
   } else {
-    room.fileTreeMesh.visible = false;
+    // Show "no files" instead of hiding the panel
+    const ftCtx = room.fileTreeCanvas.getContext('2d');
+    ftCtx.fillStyle = '#0d1117';
+    ftCtx.fillRect(0, 0, room.fileTreeCanvas.width, room.fileTreeCanvas.height);
+    ftCtx.strokeStyle = '#21262d'; ftCtx.lineWidth = 2;
+    ftCtx.strokeRect(1, 1, room.fileTreeCanvas.width - 2, room.fileTreeCanvas.height - 2);
+    ftCtx.font = '16px monospace'; ftCtx.fillStyle = '#484f58';
+    ftCtx.textAlign = 'center';
+    ftCtx.fillText('No files found', room.fileTreeCanvas.width / 2, room.fileTreeCanvas.height / 2);
+    ftCtx.textAlign = 'left';
+    room.fileTreeTexture.needsUpdate = true;
   }
 }
 

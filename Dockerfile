@@ -5,8 +5,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-EXPOSE 80
-CMD ["/bin/sh", "-c", "envsubst '${PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+FROM node:20-alpine
+RUN npm install -g serve
+COPY --from=builder /app/dist /app
+CMD ["sh", "-c", "serve -s /app -l ${PORT:-8080}"]

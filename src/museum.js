@@ -17,6 +17,8 @@ const README_W  = 512;
 const README_H  = 740;
 const FILETREE_W = 400;
 const FILETREE_H = 680;
+const LANGPANEL_W = 400;
+const LANGPANEL_H = 680;
 
 // Inner-wall doorway dimensions (shared between build + portal)
 const INNER_DOOR_W = 2.6;
@@ -151,25 +153,17 @@ export function buildMuseum(repos, languages, config, scene) {
     infoPanel.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     roomGroup.add(infoPanel);
 
-    // ── Language bar: outer side wall ──
-    const langData   = languages[repo.name] || {};
-    const langCanvas = makeLangBarCanvas(langData, 800, 100);
-    const langTex    = new THREE.CanvasTexture(langCanvas);
-    const langBar    = new THREE.Mesh(
-      new THREE.PlaneGeometry(Math.min(rw - 1, 3.5), 0.5),
-      new THREE.MeshBasicMaterial({ map: langTex, side: THREE.FrontSide })
-    );
-    langBar.position.set(side * (rw / 2 - 0.15), rh * 0.18, -rd * 0.7);
-    langBar.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
-    roomGroup.add(langBar);
+    // ── Languages panel: front wall ──
+    const langData = languages[repo.name] || {};
+    createLangPanel(roomGroup, langData, rw, rh, rd, langColor);
 
-    // ── File tree panel: outer side wall ──
+    // ── File tree panel: back wall (first thing you see) ──
     const { mesh: ftMesh, canvas: ftCanvas, texture: ftTex } =
-      createFileTreePanel(roomGroup, rw, rh, rd, side, langColor);
+      createFileTreePanel(roomGroup, rw, rh, rd, langColor);
 
-    // ── README panels: back wall (lazy loaded) ──
+    // ── README panels: outer side wall (lazy loaded) ──
     const { meshes: readmeMeshes, canvases: readmeCanvases, textures: readmeTextures } =
-      createReadmePanels(roomGroup, rw, rh, rd);
+      createReadmePanels(roomGroup, rw, rh, rd, side);
 
     // ── Neon blade sign: juts from inner wall into hallway ──
     createNeonSign(roomGroup, repo.name, lang, langColor, rw, rh, rd, side, hallWidth);
@@ -329,7 +323,7 @@ function makeNeonSignCanvas(name, langColor) {
 // ─────────────────────────────────────────────────────────────
 //  File tree panel (outer side wall)
 // ─────────────────────────────────────────────────────────────
-function createFileTreePanel(roomGroup, rw, rh, rd, side, langColor) {
+function createFileTreePanel(roomGroup, rw, rh, rd, langColor) {
   const panelW = Math.min(rw - 1, 3.0);
   const panelH = rh * 0.6;
 
@@ -342,9 +336,9 @@ function createFileTreePanel(roomGroup, rw, rh, rd, side, langColor) {
   const mat  = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
 
-  mesh.position.set(side * (rw / 2 - 0.15), rh * 0.55, -rd * 0.35);
-  mesh.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
-  mesh.visible = false;
+  // Back wall — the first wall you see when entering through the doorway
+  mesh.position.set(0, rh * 0.55, -rd / 2 + 0.15);
+  mesh.visible = true;
   roomGroup.add(mesh);
 
   return { mesh, canvas, texture: tex };
@@ -388,13 +382,114 @@ function drawFileTree(canvas, entries, langColor) {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  Languages panel (front wall)
+// ─────────────────────────────────────────────────────────────
+function createLangPanel(roomGroup, langData, rw, rh, rd, langColor) {
+  const panelW = Math.min(rw - 1, 3.0);
+  const panelH = rh * 0.6;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = LANGPANEL_W;
+  canvas.height = LANGPANEL_H;
+  drawLangPanel(canvas, langData, langColor);
+
+  const tex  = new THREE.CanvasTexture(canvas);
+  const mat  = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
+
+  // Front wall — facing inward (-Z)
+  mesh.position.set(0, rh * 0.55, rd / 2 - 0.15);
+  mesh.rotation.y = Math.PI;
+  roomGroup.add(mesh);
+}
+
+function drawLangPanel(canvas, langData, langColor) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const PX = 14;
+
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#21262d'; ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, W - 2, H - 2);
+
+  // Title
+  ctx.font = 'bold 15px monospace'; ctx.fillStyle = langColor;
+  ctx.fillText('Languages', PX, 26);
+  ctx.fillStyle = '#21262d'; ctx.fillRect(PX, 34, W - PX * 2, 1);
+
+  const entries = Object.entries(langData);
+  if (!entries.length) {
+    ctx.font = '13px monospace'; ctx.fillStyle = '#484f58';
+    ctx.fillText('No language data', PX, 60);
+    return;
+  }
+
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  const sorted = entries.sort((a, b) => b[1] - a[1]);
+
+  // Stacked bar at top
+  const barY = 44, barH = 10;
+  let bx = PX;
+  const barW = W - PX * 2;
+  for (const [lang, bytes] of sorted) {
+    const w = Math.max(1, (bytes / total) * barW);
+    ctx.fillStyle = getLangColor(lang);
+    ctx.fillRect(bx, barY, w, barH);
+    bx += w;
+  }
+
+  // Language entries
+  let y = barY + barH + 20;
+  const entryBarW = W - PX * 2 - 160;
+
+  for (const [lang, bytes] of sorted) {
+    if (y > H - 16) break;
+    const pct = (bytes / total) * 100;
+    const color = getLangColor(lang);
+
+    // Colored dot
+    ctx.beginPath();
+    ctx.arc(PX + 6, y - 4, 5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // Language name
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#e6edf3';
+    const displayName = lang.length > 18 ? lang.slice(0, 17) + '…' : lang;
+    ctx.fillText(displayName, PX + 18, y);
+
+    // Percentage bar
+    const barStartX = PX + 150;
+    const pctBarW = (pct / 100) * entryBarW;
+    ctx.fillStyle = '#21262d';
+    ctx.fillRect(barStartX, y - 9, entryBarW, 12);
+    ctx.fillStyle = color;
+    ctx.fillRect(barStartX, y - 9, pctBarW, 12);
+
+    // Percentage text
+    ctx.fillStyle = '#8b949e'; ctx.font = '12px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(pct.toFixed(1) + '%', W - PX, y);
+    ctx.textAlign = 'left';
+
+    y += 24;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 //  README panels (back wall, lazy loaded)
 // ─────────────────────────────────────────────────────────────
-function createReadmePanels(roomGroup, rw, rh, rd) {
-  const panelW  = Math.min(rw * 0.3, 2.5);
+function createReadmePanels(roomGroup, rw, rh, rd, side) {
+  const gap     = 0.3;                              // gap between panels and from walls
+  const usableZ = rd - gap * 2;                     // Z space inside front/back walls
+  const panelW  = Math.min((usableZ - gap * 2) / 3, 2.5); // fit 3 panels with gaps between
   const panelH  = rh * 0.68;
-  const offsets = [-rw * 0.3, 0, rw * 0.3];
   const meshes  = [], canvases = [], textures = [];
+
+  // Evenly distribute 3 panels along usable Z range
+  const totalSpan = panelW * 3 + gap * 2;           // 3 panels + 2 gaps between them
+  const startZ    = -totalSpan / 2 + panelW / 2;    // center of first panel (centered in room)
 
   for (let p = 0; p < 3; p++) {
     const canvas = document.createElement('canvas');
@@ -404,7 +499,10 @@ function createReadmePanels(roomGroup, rw, rh, rd) {
     const tex  = new THREE.CanvasTexture(canvas);
     const mat  = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
-    mesh.position.set(offsets[p], rh / 2, -rd / 2 + 0.18);
+    // Outer side wall — facing inward toward the room
+    const z = startZ + p * (panelW + gap);
+    mesh.position.set(side * (rw / 2 - 0.15), rh / 2, z);
+    mesh.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     mesh.visible = false;
     roomGroup.add(mesh);
 

@@ -51,7 +51,7 @@ npm run preview # preview the production build locally
 
 ```bash
 docker build -t git-gallery .
-docker run -p 8080:80 git-gallery
+docker run -p 8080:8080 git-gallery
 ```
 
 ## Inspiration
