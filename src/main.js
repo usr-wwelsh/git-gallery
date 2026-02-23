@@ -157,13 +157,18 @@ async function init() {
 function loop() {
   requestAnimationFrame(loop);
 
-  const delta = clock.getDelta();
+  const delta   = clock.getDelta();
   const elapsed = clock.getElapsedTime();
 
-  // Controls movement + collision
+  // Controls movement + collision (substep to prevent wall tunnelling at high speed)
   if (controls) {
-    controls.updateMovement(delta);
-    if (controls.isLocked) resolveCollisions(camera.position, wallBoxes, PLAYER_RADIUS);
+    const maxStep = PLAYER_RADIUS / (CONFIG.player.speed * CONFIG.player.runMultiplier);
+    const steps = Math.ceil(delta / maxStep);
+    const subDelta = delta / steps;
+    for (let s = 0; s < steps; s++) {
+      controls.updateMovement(subDelta);
+      if (controls.isLocked) resolveCollisions(camera.position, wallBoxes, PLAYER_RADIUS);
+    }
   }
 
   // Artifact animation (spin + bob)
